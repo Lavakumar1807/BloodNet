@@ -7,7 +7,7 @@ import Image from "next/image";
 import Image7 from "@/Images/Image7.jpeg"
 import Image6 from "@/Images/Image6.jpg"
 import Image8 from "@/Images/Image8.jpeg"
-import Image9 from "@/Images/Image9.png"
+import Image9 from "@/Images/Image9.webp"
 
 function Explore(){
     const [bloodbankCount,setBloodBankCount] = useState(0);
@@ -53,7 +53,6 @@ function Explore(){
     return(
         <div className="w-full  bg-black flex justify-start items-start flex-col">
             <div className="w-[100%] pt-[100px] flex justify-start items-start flex-col gap-[80px]">
-
              <div className="w-[100%]">
              <Image
                     src={Image9}

@@ -1,15 +1,15 @@
 import Image from "next/image";
-import HomeImage from "@/Images/Home.jpg"; 
 import Link from "next/link";
 
 function Home() {
   return (
       <div className="bg-black relative h-screen w-screen flex justify-end items-center p-10">
         <Image
-        src={HomeImage}
+        src="/Images/Home.jpg"
         alt="Home Background"
         fill
         className="object-cover"
+        priority
       />
       <div className=" absolute top-10 right-10  text-white text-[17px] font-medium">
          <button className="border-2 border-red-700 p-2  rounded-[10px] hover:bg-gradient-to-r from-red-800 to-red-600 hover:cursor-pointer hover:text-black"><Link href="/explore">Explore</Link></button>

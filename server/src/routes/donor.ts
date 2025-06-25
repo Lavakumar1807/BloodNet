@@ -1,5 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import pool from "../database";
+import redis from "../redisclient";
+
 import { comparePasswords, hashPassword } from "../hashPassword";
 import { RowDataPacket } from 'mysql2';
 
@@ -12,15 +14,27 @@ interface StaffpwdRow extends RowDataPacket{
 const jwt = require("jsonwebtoken");
 import dotenv from 'dotenv';
 dotenv.config();
+
 const SECRET_KEY = process.env.JWT_SECRET;
+const EXPIRE_TIME = ((process.env.REDIS_EXPIRE_TIME as unknown) as number);
 
 router.get("/donorcount" ,async(req:Request,res:Response) =>{
    try{
+       const cacheKey = "donorcount";
+       const cacheData = await redis.get(cacheKey);
+
+       if(cacheData){
+         res.status(200).json({ count : cacheData});
+         return;
+       }
+
        const [donor] = await pool.query(
            "SELECT COUNT(*) as bbcount FROM donor"
        ) 
-
        const donorCount = (donor as any)[0].bbcount;
+       await redis.set(cacheKey,donorCount);
+       await redis.expire(cacheKey,EXPIRE_TIME);
+      
        res.status(200).json({ count : donorCount});
    }catch(error){
        res.status(500).json({ message : "Server Error" , Error : error});
@@ -123,12 +137,25 @@ interface DonorInfo extends RowDataPacket{
 router.get("/details/donor/:donorId",async(req:Request,res:Response)=>{
   try{
        const { donorId } = req.params;
+       const cacheKey = `donor:${donorId}`;
+       const cacheData = await redis.get(cacheKey);
+
+       if(cacheData){
+         res.status(200).json({donor : JSON.parse(cacheData)});
+         return;
+       }
+
        const [donor] = await pool.query<DonorInfo[]>(
           "SELECT * FROM donor WHERE id = ? ",[donorId]
        )
+       await redis.set(cacheKey,JSON.stringify(donor));
+       await redis.expire(cacheKey,EXPIRE_TIME);
+
        res.status(200).json({donor : donor});
+       return;
   }catch(error){
       res.status(500).json({message : "Error in fetching Donor Details"})
+      return;
   }
 })
 
@@ -173,32 +200,39 @@ router.post("/donate",async(req:Request,res:Response)=>{
 })
 
 interface BloodSpecimen extends RowDataPacket{
-    quantity : string
+    quantity : string,
     collected_date : string
-    bloodbank_id : string
+    bloodbank_id : string,
+    bloodbankname : string
 }
 
 router.get("/donor/transactions/:donorId",async(req:Request,res:Response)=>{
      try{
           const { donorId } = req.params;
+
+          const cacheKey = `donorTransactions:${donorId}`
+          const cacheData = await redis.get(cacheKey);
+
+          if(cacheData){
+             res.status(200).json({ transactions : JSON.parse(cacheData) });
+             return;
+          }
+
           const [transactions] = await pool.query<BloodSpecimen[]>(
-            "SELECT quantity,collected_date,bloodbank_id FROM bloodspecimen WHERE donor_id = ?",[donorId]
-          )
+            `SELECT 
+              bs.quantity, 
+              bs.collected_date, 
+              bs.bloodbank_id,
+              bb.bloodbankname
+            FROM bloodspecimen bs
+            JOIN bloodbank bb ON bs.bloodbank_id = bb.id
+            WHERE bs.donor_id = ?`,
+            [donorId]
+          );
+          await redis.set(cacheKey,JSON.stringify(transactions));
+          await redis.expire(cacheKey,EXPIRE_TIME);
 
-          const enrichedTransactions = await Promise.all(
-          transactions.map(async (tx)=>{
-            const bloodbankId = tx.bloodbank_id;
-            const [bloodbank] = await pool.query<BloodBankpwdRow[]>(
-              "SELECT bloodbankname FROM bloodbank WHERE id = ?",[bloodbankId]
-            )
-            const bloodbankname = bloodbank[0].bloodbankname;
-            return {
-              ...tx,
-              bloodbankname,
-            }
-          }));
-
-          res.status(200).json({ transactions : enrichedTransactions});
+          res.status(200).json({ transactions });
      }catch(error){
        res.status(500).json({message : "Error in Donating Blood"})
      }

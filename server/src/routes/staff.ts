@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import pool from "../database";
+import redis from "../redisclient";
 import { comparePasswords, hashPassword } from "../hashPassword";
 import { RowDataPacket } from 'mysql2';
 
@@ -8,8 +9,9 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 import dotenv from 'dotenv';
 dotenv.config();
-const SECRET_KEY = process.env.JWT_SECRET;
 
+const SECRET_KEY = process.env.JWT_SECRET;
+const EXPIRE_TIME = ((process.env.REDIS_EXPIRE_TIME as unknown) as number);
 
 interface BloodBankRow extends RowDataPacket{
     password : string
@@ -106,10 +108,23 @@ interface StaffInfo extends RowDataPacket{
 router.get("/details/staff/:staffId",async(req:Request,res:Response)=>{
     try{
          const { staffId } = req.params;
+         
+         const cacheKey = `staff:${staffId}`
+         const cacheData = await redis.get(cacheKey);
+
+         if(cacheData){
+            res.status(200).json({staff : JSON.parse(cacheData)});
+            return;
+         }
+
          const [staff] = await pool.query<StaffInfo[]>(
             "SELECT * FROM staff WHERE id = ? ",[staffId]
          )
+         await redis.set(cacheKey,JSON.stringify(staff));
+         await redis.expire(cacheKey,EXPIRE_TIME);
+         
          res.status(200).json({staff : staff});
+         return;
     }catch(error){
         res.status(500).json({message : "Error in fetching Staff Details"})
     }

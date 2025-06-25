@@ -84,7 +84,7 @@ function Navbar(){
                       { checkDonor ? <Link href="/explore/donate"><h1 className={`${getActiveClass("/explore/donate")}`}>Donate</h1></Link> : <></> }
                       { checkRecipient ? <Link href="/explore/request"><h1 className={`${getActiveClass("/explore/request")}`}>Request Blood</h1></Link> : <></> }
                       { (checkDonor || checkRecipient) ? <Link href="/explore/notifications"><h1 className={`${getActiveClass("/explore/notifications")}`}>Notifications</h1></Link> : <></> }
-                      { checkBloodBank ? <Link href="/explore/bloodinventory"><h1 className={`${getActiveClass("/explore/bloodinventory")}`}>Check Blood  Inventory</h1></Link> : <></> }
+                      { checkBloodBank ? <Link href="/explore/bloodinventory"><h1 className={`${getActiveClass("/explore/bloodinventory")}`}>Blood  Inventory</h1></Link> : <></> }
                       { checkBloodBank ? <Link href="/explore/notifications"><h1 className={`${getActiveClass("/explore/notifications")}`}>Broadcast</h1></Link> : <></> }
                       <Link href="/explore/bloodbankdirectory"><h1 className={`${getActiveClass("/explore/bloodbankdirectory")}`}>Blood Bank Directory</h1></Link>
                       <Link href="/explore/bloodavailability"><h1 className={`${getActiveClass("/explore/bloodavailability")}`}>Blood Availability</h1></Link>

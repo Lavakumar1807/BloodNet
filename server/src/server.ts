@@ -4,9 +4,11 @@ import staffRoutes from "./routes/staff";
 import donorRoutes from "./routes/donor";
 import hospitalRoutes from "./routes/hospital";
 import recipientRoutes from "./routes/recipient";
+import bloodspecimenRoutes from "./routes/bloodspecimen";
+
 import cors from "cors";
 import { RowDataPacket } from 'mysql2';
-import pool from "../src/database"
+import pool from "./database"
 
 const jwt = require("jsonwebtoken");
 
@@ -56,7 +58,7 @@ app.use('/',staffRoutes);
 app.use('/',donorRoutes);
 app.use('/',recipientRoutes);
 app.use('/',hospitalRoutes);
-
+app.use('/',bloodspecimenRoutes);
 
 app.get("/me", verifyToken ,async(req : Request,res : Response)=>{
     try{

@@ -1,1 +1,1 @@
-{"root":["./src/server.ts"],"version":"5.8.2"}
+{"root":["./src/database.ts","./src/hashpassword.ts","./src/redisclient.ts","./src/server.ts","./src/routes/bloodbank.ts","./src/routes/bloodspecimen.ts","./src/routes/donor.ts","./src/routes/hospital.ts","./src/routes/recipient.ts","./src/routes/staff.ts"],"version":"5.8.2"}

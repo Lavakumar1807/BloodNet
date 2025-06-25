@@ -1,13 +1,19 @@
 import express, { Request, Response ,NextFunction} from "express";
+
 import pool from "../database";
-import { hashPassword,comparePasswords } from "../hashPassword";
 import { RowDataPacket } from 'mysql2';
+import redis from "../redisclient";
+
+import { hashPassword,comparePasswords } from "../hashPassword";
+
 const router = express.Router();
 
 const jwt = require("jsonwebtoken");
 import dotenv from 'dotenv';
 dotenv.config();
+
 const SECRET_KEY = process.env.JWT_SECRET;
+const EXPIRE_TIME = ((process.env.REDIS_EXPIRE_TIME as unknown) as number);
 
 
 interface BloodBankInfo extends RowDataPacket{
@@ -19,38 +25,76 @@ interface BloodBankInfo extends RowDataPacket{
     password: string
 }
 
-router.get('/bloodbanks',async(req:Request,res:Response)=>{
+router.get('/bloodbanks',async(req:Request,res:Response) : Promise<void> =>{
     try{
+        const cacheKey = 'bloodbanks'
+        const cacheData = await redis.get(cacheKey);
+
+        if(cacheData){
+          res.status(200).json({bloodbanks : JSON.parse(cacheData) , count : cacheData.length})
+          return;
+        }
+
         const [bloodbanks] = await pool.query<BloodBankInfo[]>(
             "SELECT * FROM bloodbank"
         )
         const bloodBankCount = (bloodbanks as any).length;
+        await redis.set(cacheKey,JSON.stringify(bloodbanks));
+        await redis.expire(cacheKey,EXPIRE_TIME);
+       
         res.status(200).json({ bloodbanks : bloodbanks , count : bloodBankCount});
+        return;
     }catch(error){
         res.status(500).json({ message : "Server Error" , Error : error});
+        return;
     }
 })
 
-router.get('/bloodbanklocations',async(req:Request,res:Response)=>{
+router.get('/bloodbanklocations',async(req:Request,res:Response) : Promise<void> =>{
     try{
+        const cacheKey = 'locations'
+        const cacheData = await redis.get(cacheKey);
+
+        if(cacheData){
+           res.status(200).json({locations : JSON.parse(cacheData)});
+           return;
+        }
+
         const [locations] = await pool.query(
             "SELECT DISTINCT location FROM bloodbank"
         )
+        await redis.set(cacheKey,JSON.stringify(locations));
+        await redis.expire(cacheKey,EXPIRE_TIME);
+
         res.status(200).json({ locations : locations});
     }catch(error){
         res.status(500).json({ message : "Server Error" , Error : error});
     }
 })
 
-router.get('/bloodbanks/:location',async(req:Request,res:Response)=>{
+router.get('/bloodbanks/:location',async(req:Request,res:Response) : Promise<void>=>{
     try{
         const { location } = req.params;
+
+        const cacheKey = `bloodbanks:${location}`
+        const cacheData = await redis.get(cacheKey);
+
+        if(cacheData){
+          res.status(200).json({ bloodbanks : JSON.parse(cacheData)});
+          return;
+        }
+
         const [bloodbanks] = await pool.query<BloodBankInfo[]>(
             "SELECT * FROM bloodbank WHERE location = ? ",[location]
         )
+        await redis.set(cacheKey,JSON.stringify(bloodbanks));
+        await redis.expire(cacheKey,EXPIRE_TIME);
+
         res.status(200).json({ bloodbanks : bloodbanks});
+        return;
     }catch(error){
         res.status(500).json({ message : "Server Error" , Error : error});
+        return;
     }
 })
 
@@ -115,9 +159,21 @@ router.post("/login/bloodbank", async(req:Request,res:Response)=>{
 router.get("/details/bloodbank/:bloodBankId",async(req:Request,res:Response)=>{
     try{
          const { bloodBankId } = req.params;
+         
+         const cacheKay = `bloodbank:${bloodBankId}`
+         const cacheData = await redis.get(cacheKay);
+
+         if(cacheData){
+           res.status(200).json({bloodbank : JSON.parse(cacheData)});
+           return;
+         }
+
          const [bloodbank] = await pool.query<BloodBankInfo[]>(
             "SELECT * FROM bloodbank WHERE id = ? ",[bloodBankId]
          )
+         await redis.set(cacheKay,JSON.stringify(bloodbank));
+         await redis.expire(cacheKay,EXPIRE_TIME)
+
          res.status(200).json({bloodbank : bloodbank});
     }catch(error){
         res.status(500).json({message : "Error in fetching Blood Bank Details"})
@@ -144,65 +200,73 @@ interface DonorInfo extends RowDataPacket{
     phonenumber : number
     staff_id:string
     password: string
-  }
+}
 
-router.get("/bloodbank/transactions/:bloodbankId",async(req:Request,res:Response)=>{
+router.get("/bloodbank/transactions/:bloodbankId",async(req:Request,res:Response) : Promise<void>=>{
     try{
-         const { bloodbankId } = req.params;
-         const [transactions] = await pool.query<BloodSpecimen[]>(
-           "SELECT quantity,collected_date,donor_id FROM bloodspecimen WHERE bloodbank_id = ?",[bloodbankId]
-         )
+      const { bloodbankId } = req.params;
 
-         const enrichedTransactions = await Promise.all(
-         transactions.map(async (tx)=>{
-           const donorId = tx.donor_id;
-           const [donor] = await pool.query<DonorInfo[]>(
-             "SELECT id,donorname,phonenumber,bloodgroup,role FROM donor WHERE id = ?",[donorId]
-           )
-           const donorname = donor[0].donorname;
-           const phonenumber = donor[0].phonenumber;
-           const role = donor[0].role;
-           const bloodgroup = donor[0].bloodgroup;
-           return {
-             ...tx,
-             role,
-             donorname,
-             bloodgroup,
-             phonenumber
-           }
-         }));
+      const cacheKey = `bloodbankTransactions:${bloodbankId}`;
+      const cacheTransactionData = await redis.get(cacheKey);
 
-         res.status(200).json({ transactions : enrichedTransactions});
+      if (!cacheTransactionData) {
+        const [transactions] = await pool.query(
+          `SELECT 
+            bs.quantity, 
+            bs.collected_date, 
+            bs.donor_id, 
+            d.donorname, 
+            d.phonenumber, 
+            d.bloodgroup, 
+            d.role
+          FROM bloodspecimen bs
+          JOIN donor d ON bs.donor_id = d.id
+          WHERE bs.bloodbank_id = ?`, 
+          [bloodbankId]
+        );
+
+        await redis.set(cacheKey, JSON.stringify(transactions));
+        await redis.expire(cacheKey, EXPIRE_TIME);
+
+        res.status(200).json({ transactions });
+        return;
+      }
+
+      const transactions = JSON.parse(cacheTransactionData);
+      res.status(200).json({ transactions });
     }catch(error){
       res.status(500).json({message : "Error in Donating Blood"})
     }
 })
 
 
-router.get("/bloodbank/bloodinventory/:bloodbankId",async(req:Request,res:Response)=>{
+router.get("/bloodbank/bloodinventory/:bloodbankId",async(req:Request,res:Response) : Promise<void> =>{
     try{
         const { bloodbankId } = req.params;
-        const [bloodspecimen] = await pool.query<BloodSpecimen[]>(
-            "SELECT * FROM bloodspecimen WHERE bloodbank_id = ?",[bloodbankId]
-        )
+        
+        const cacheKey = `bloodInventory:${bloodbankId}`;
+        const cacheData = await redis.get(cacheKey);
 
-        const bloodInventory = await Promise.all(
-            bloodspecimen.map(async (blood)=>{
-              const donorId = blood.donor_id;
-              const [donor] = await pool.query<DonorInfo[]>(
-                "SELECT id,donorname,phonenumber,bloodgroup,role FROM donor WHERE id = ?",[donorId]
-              )
-              const donorname = donor[0].donorname;
-              const phonenumber = donor[0].phonenumber;
-              return {
-                ...blood,
-                donorname,
-                phonenumber
-              }
-        }));
+        if(cacheData){
+           res.status(200).json({ bloodspecimen: JSON.parse(cacheData) });
+           return
+        }
 
-        res.status(200).json({ bloodspecimen : bloodInventory});
+       const [bloodInventory] = await pool.query(
+          `SELECT 
+            bs.*, 
+            d.donorname, 
+            d.phonenumber 
+          FROM bloodspecimen bs
+          JOIN donor d ON bs.donor_id = d.id
+          WHERE bs.bloodbank_id = ?`, 
+          [bloodbankId]
+        );
+        await redis.set(cacheKey,JSON.stringify(bloodInventory));
+        await redis.expire(cacheKey,EXPIRE_TIME);
 
+        res.status(200).json({ bloodspecimen: bloodInventory });
+        return;
     }catch(error){
         res.status(500).json({message : "Error in fetching Blood Inventory"})
     }
