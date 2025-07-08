@@ -10,6 +10,8 @@ import { TbLogout } from "react-icons/tb";
 import { FaUserAlt } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import BloodNet from "@/Images/BloodNet.png"
 
 
 function Navbar(){
@@ -72,12 +74,16 @@ function Navbar(){
     }
   
     return(
-       <div className="fixed w-[100%] p-[25px] z-50 flex items-end justify-between bg-black shadow-md shadow-red-600/40">
-                <div className="text-white">
-                    <h1 className=" text-white text-5xl font-bold flex justify-baseline items-start  flex-wrap"><span className="bg-gradient-to-r from-red-800 to-red-500 bg-clip-text text-transparent">Blood</span>Net</h1>
+       <div className="fixed w-[100%] py-[5px] z-50 flex items-center justify-between bg-black shadow-md shadow-red-600/40">
+                <div className="text-white w-[500px] h-[100px] flex items-center justify-center ">
+                  <Image 
+                    src={BloodNet}
+                    alt="BloodNet"
+                    className="object-contain h-full max-h-[100px] w-auto"
+                  />
                 </div>
        
-                <div className="relative inline-flex ">
+                <div className="relative inline-flex">
                     {
                     loginCheck ?
                     <div className="text-white px-[20px] flex justify-around items-center gap-[30px]">

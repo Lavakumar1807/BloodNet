@@ -29,9 +29,10 @@ router.get('/bloodbanks',async(req:Request,res:Response) : Promise<void> =>{
     try{
         const cacheKey = 'bloodbanks'
         const cacheData = await redis.get(cacheKey);
+        const bloodbankcount = await redis.get("bloodbankcount")
 
         if(cacheData){
-          res.status(200).json({bloodbanks : JSON.parse(cacheData) , count : cacheData.length})
+          res.status(200).json({ bloodbanks :  JSON.parse(cacheData), count : Number(bloodbankcount)})
           return;
         }
 
@@ -40,6 +41,9 @@ router.get('/bloodbanks',async(req:Request,res:Response) : Promise<void> =>{
         )
         const bloodBankCount = (bloodbanks as any).length;
         await redis.set(cacheKey,JSON.stringify(bloodbanks));
+        await redis.set('bloodbankcount',bloodBankCount);
+        
+        await redis.expire("bloodbankcount",EXPIRE_TIME);
         await redis.expire(cacheKey,EXPIRE_TIME);
        
         res.status(200).json({ bloodbanks : bloodbanks , count : bloodBankCount});

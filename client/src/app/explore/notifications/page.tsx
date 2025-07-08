@@ -102,8 +102,8 @@ function Notifications() {
       </div>
 
       { user?.role == "bloodbank" ? 
-      <div className="p-[30px]">
-      <div className="max-w-2xl mx-auto mb-12 bg-[#1a1a1a] p-6 rounded-2xl shadow-lg">
+      <div className="w-full p-[60px] flex justify-around items-center">
+      <div className="max-w-2xl mx-auto bg-[#1a1a1a] p-6 rounded-2xl shadow-lg">
         <h1 className="text-[30px] mb-1 font-bold font-mono bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">Broadcast Notification</h1>
 
         <input
@@ -143,7 +143,7 @@ function Notifications() {
         </button>
       </div>
 
-      <div className="w-[70%] mx-auto bg-[#1a1a1a] p-6 rounded-2xl shadow-lg">
+      <div className="w-[50%] mx-auto bg-[#1a1a1a] p-6 rounded-2xl shadow-lg">
         <h2 className="text-[30px] mb-1 font-bold font-mono bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">Broadcast History</h2>
         {BroadcastHistory.length === 0 ? (
           <p className="text-gray-400">No Broadcasts yet...</p>

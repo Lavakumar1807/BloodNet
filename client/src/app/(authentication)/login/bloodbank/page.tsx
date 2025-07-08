@@ -24,11 +24,10 @@ function BloodBankLogin(){
           {
             withCredentials: true
           });
+          alert(response.data.message);
 
           setBloodBankName("");
           setPassword("");
-
-          alert(response.data.message);
           router.push("/explore");
         }catch(error){
           console.log("Error in Blood Bank Login : ",error);

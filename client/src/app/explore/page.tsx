@@ -35,7 +35,6 @@ function Explore(){
     const getBloodUnitsCount = async()=>{
         try{
             const response = await axios.get("http://localhost:5000/bloodunitcount");
-            console.log(response.data.count);
             setBloodUnitsCount(response.data.count);
         }catch(error){
             alert("Server ERROR!!");
@@ -47,12 +46,12 @@ function Explore(){
     useEffect(()=>{
         getBloodBankCount();
         getDonorCount();
-        //getBloodUnitsCount();
-    },[bloodbankCount,donorCount]);
+        getBloodUnitsCount();
+    },[bloodbankCount,donorCount,bloodUnitsCount]);
 
     return(
         <div className="w-full  bg-black flex justify-start items-start flex-col">
-            <div className="w-[100%] pt-[100px] flex justify-start items-start flex-col gap-[80px]">
+            <div className="w-[100%] pt-[80px] flex justify-start items-start flex-col gap-[80px]">
              <div className="w-[100%]">
              <Image
                     src={Image9}

@@ -10,10 +10,10 @@ import cors from "cors";
 import { RowDataPacket } from 'mysql2';
 import pool from "./database"
 
-const jwt = require("jsonwebtoken");
-
 import dotenv from 'dotenv';
 dotenv.config();
+
+const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -104,7 +104,10 @@ app.get("/bloodavailability/:location/:bloodgroup",async(req : Request,res : Res
         const location = req.params.location;
         const bloodgroup = req.params.bloodgroup;
         const [bloodavailability] = await pool.query<BloodAvailabilityInfo[]>(
-            "SELECT bs.quantity,bs.collected_date,bs.bloodbank_id,bs.expiry_date,b.bloodbankname,b.contactnumber FROM bloodspecimen bs JOIN bloodbank b ON b.id = bs.bloodbank_id WHERE b.location = ? AND bs.blood_group = ?",[location,bloodgroup]
+          `SELECT bs.quantity,bs.collected_date,bs.bloodbank_id,bs.expiry_date,b.bloodbankname,b.contactnumber 
+          FROM bloodspecimen bs 
+          JOIN bloodbank b ON b.id = bs.bloodbank_id 
+          WHERE b.location = ? AND bs.blood_group = ?`,[location,bloodgroup]
         )
         res.status(200).json({ bloodavailability : bloodavailability});
     }catch(error){
@@ -133,7 +136,7 @@ app.get("/:role/notifications",async(req : Request,res : Response)=>{
             }
             }
         )
-    );
+      );
 
       res.status(200).json({ notifications : enrichedNotifications});
    }catch(error){
@@ -142,5 +145,5 @@ app.get("/:role/notifications",async(req : Request,res : Response)=>{
 })
 
 app.listen(PORT , ()=>{
-    console.log("Running on port : ",PORT);
+    console.log("Server running on port : ",PORT);
 })

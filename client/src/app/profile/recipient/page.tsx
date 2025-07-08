@@ -109,7 +109,7 @@ function RecipientProfile() {
     <div className="pt-[150px] w-full  min-h-screen flex justify-center items-center bg-black overflow-hidden">
       <div className="absolute top-[150px] left-[30px] text-white text-[17px] font-medium">
         <button className="pr-[15px] pl-[15px] border-2 border-red-700 p-2 rounded-[10px] hover:bg-gradient-to-r from-red-800 to-red-600 hover:cursor-pointer hover:text-black">
-          <Link href="/explore">Go Back</Link>
+          <Link href="/explore">Home</Link>
         </button>
       </div>
 
